@@ -58,10 +58,10 @@
               id="prompt-input"
               rows="4"
               class="w-full bg-light-input dark:bg-dark-input border border-gray-300 dark:border-gray-600 rounded-lg p-4 text-light-text-strong dark:text-dark-text-strong placeholder-gray-500 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-shadow duration-200 resize-none"
-              placeholder="Enter one or more prompts, separated by new lines.&#10;e.g., A cinematic shot of a futuristic city at night&#10;A cute robot holding a red skateboard"
-              aria-label="Image generation prompts"
+              placeholder="A cinematic shot of a futuristic city at night with flying cars and neon lights."
+              aria-label="Image generation prompt"
             ></textarea>
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
               <div>
                 <label for="aspect-ratio-select" class="block text-sm font-medium text-light-text-soft dark:text-dark-text-soft mb-1">Aspect Ratio</label>
                 <select id="aspect-ratio-select" class="w-full bg-light-input dark:bg-dark-input border border-gray-300 dark:border-gray-600 rounded-lg p-2 text-light-text-strong dark:text-dark-text-strong focus:ring-2 focus:ring-blue-500">
@@ -73,7 +73,21 @@
                 </select>
               </div>
               <div>
-                <label for="num-images-select" class="block text-sm font-medium text-light-text-soft dark:text-dark-text-soft mb-1">Number of Images (per prompt)</label>
+                <label for="resolution-select" class="block text-sm font-medium text-light-text-soft dark:text-dark-text-soft mb-1">Resolution</label>
+                <select id="resolution-select" class="w-full bg-light-input dark:bg-dark-input border border-gray-300 dark:border-gray-600 rounded-lg p-2 text-light-text-strong dark:text-dark-text-strong focus:ring-2 focus:ring-blue-500">
+                  <option value="1024" selected>1K (1024px)</option>
+                  <option value="2048">2K (2048px)</option>
+                </select>
+              </div>
+               <div>
+                <label for="format-select" class="block text-sm font-medium text-light-text-soft dark:text-dark-text-soft mb-1">Format</label>
+                <select id="format-select" class="w-full bg-light-input dark:bg-dark-input border border-gray-300 dark:border-gray-600 rounded-lg p-2 text-light-text-strong dark:text-dark-text-strong focus:ring-2 focus:ring-blue-500">
+                  <option value="image/jpeg" selected>JPEG</option>
+                  <option value="image/png">PNG</option>
+                </select>
+              </div>
+              <div>
+                <label for="num-images-select" class="block text-sm font-medium text-light-text-soft dark:text-dark-text-soft mb-1">Number of Images</label>
                 <select id="num-images-select" class="w-full bg-light-input dark:bg-dark-input border border-gray-300 dark:border-gray-600 rounded-lg p-2 text-light-text-strong dark:text-dark-text-strong focus:ring-2 focus:ring-blue-500">
                   <option value="1" selected>1</option>
                   <option value="2">2</option>

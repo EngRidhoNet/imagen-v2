@@ -4,7 +4,7 @@
  * Copyright 2025 Google LLC
  * SPDX-License-Identifier: Apache-2.0
  */
-import { GoogleGenAI } from '@google/genai';
+import { GoogleGenAI, Modality } from '@google/genai';
 
 // --- Type Definitions ---
 declare global {
@@ -23,7 +23,9 @@ const statusEl = document.querySelector('#status') as HTMLDivElement;
 const resultsGridEl = document.querySelector('#results-grid') as HTMLDivElement;
 const loadingOverlayEl = document.querySelector('#loading-overlay') as HTMLDivElement;
 const aspectRatioSelect = document.querySelector('#aspect-ratio-select') as HTMLSelectElement;
+const resolutionSelect = document.querySelector('#resolution-select') as HTMLSelectElement;
 const numImagesSelect = document.querySelector('#num-images-select') as HTMLSelectElement;
+const formatSelect = document.querySelector('#format-select') as HTMLSelectElement;
 const themeToggle = document.querySelector('#theme-toggle') as HTMLInputElement;
 const historyListEl = document.querySelector('#history-list') as HTMLUListElement;
 
@@ -67,7 +69,9 @@ function setControlsDisabled(disabled: boolean) {
   generateButton.disabled = disabled;
   promptEl.disabled = disabled;
   aspectRatioSelect.disabled = disabled;
+  resolutionSelect.disabled = disabled;
   numImagesSelect.disabled = disabled;
+  formatSelect.disabled = disabled;
 }
 
 /**
@@ -79,14 +83,110 @@ function showLoading(show: boolean) {
 }
 
 /**
- * Creates and appends an image card to the results grid.
- * @param imageUrl - The data URL of the generated image.
- * @param prompt - The prompt used to generate the image.
+ * Upscales a generated image using a different model.
+ * @param card The image card element containing the image and button.
+ * @param originalBase64 The base64 string of the original image.
+ * @param mimeType The MIME type of the original image.
  */
-function createImageCard(imageUrl: string, prompt: string) {
+async function upscaleImage(card: HTMLDivElement, originalBase64: string, mimeType: string) {
+  const upscaleButton = card.querySelector('button') as HTMLButtonElement;
+  const upscaleSelect = card.querySelector('.upscale-select') as HTMLSelectElement;
+  const upscaleFactor = upscaleSelect.value;
+  const img = card.querySelector('img') as HTMLImageElement;
+
+  // 1. Show loading state
+  upscaleButton.disabled = true;
+  upscaleSelect.disabled = true;
+  upscaleButton.textContent = 'Upscaling...';
+  img.style.opacity = '0.5';
+
+  const apiKey = process.env.API_KEY;
+  if (!apiKey) {
+    showStatusError('API key is not configured.');
+    upscaleButton.disabled = false;
+    upscaleSelect.disabled = false;
+    upscaleButton.textContent = 'Upscale';
+    img.style.opacity = '1';
+    return;
+  }
+
+  try {
+    const ai = new GoogleGenAI({ apiKey });
+    const response = await ai.models.generateContent({
+      model: 'gemini-2.5-flash-image-preview',
+      contents: {
+        parts: [
+          {
+            inlineData: {
+              data: originalBase64,
+              mimeType: mimeType,
+            },
+          },
+          {
+            text: `Upscale this image by ${upscaleFactor}, enhancing details and resolution to the highest quality without altering the content or style.`,
+          },
+        ],
+      },
+      config: {
+        responseModalities: [Modality.IMAGE, Modality.TEXT],
+      },
+    });
+
+    let upscaledBase64: string | null = null;
+    let upscaledMimeType: string | null = mimeType;
+
+    for (const part of response.candidates[0].content.parts) {
+      if (part.inlineData) {
+        upscaledBase64 = part.inlineData.data;
+        upscaledMimeType = part.inlineData.mimeType;
+        break;
+      }
+    }
+
+    if (!upscaledBase64) {
+      throw new Error("Upscaling did not return an image.");
+    }
+
+    // 2. Update card with upscaled image
+    const newImageUrl = `data:${upscaledMimeType};base64,${upscaledBase64}`;
+    img.src = newImageUrl;
+    img.style.opacity = '1';
+
+    // 3. Replace "Upscale" button with "Download"
+    upscaleSelect.remove();
+    upscaleButton.textContent = 'Download';
+    upscaleButton.disabled = false;
+    upscaleButton.className = 'w-full bg-blue-500 hover:bg-blue-600 text-white font-semibold py-2 px-4 rounded-lg text-sm transition-colors'; // Make it full width
+    upscaleButton.onclick = () => {
+      const a = document.createElement('a');
+      a.href = newImageUrl;
+      const extension = upscaledMimeType === 'image/png' ? 'png' : 'jpeg';
+      const prompt = img.alt;
+      a.download = `${prompt.slice(0, 20).replace(/\s/g, '_')}_upscaled_${upscaleFactor}.${extension}`;
+      a.click();
+    };
+
+  } catch (error) {
+    console.error("Upscaling failed:", error);
+    upscaleButton.disabled = false;
+    upscaleSelect.disabled = false;
+    upscaleButton.textContent = 'Upscale Failed - Retry';
+    img.style.opacity = '1';
+    upscaleButton.onclick = () => upscaleImage(card, originalBase64, mimeType);
+  }
+}
+
+/**
+ * Creates and appends an image card to the results grid.
+ * @param originalBase64 - The base64 data of the generated image.
+ * @param prompt - The prompt used to generate the image.
+ * @param format - The MIME type of the image.
+ */
+function createImageCard(originalBase64: string, prompt: string, format: string) {
   const card = document.createElement('div');
   card.className = 'image-card bg-light-card dark:bg-dark-card';
 
+  const imageUrl = `data:${format};base64,${originalBase64}`;
   const img = document.createElement('img');
   img.src = imageUrl;
   img.alt = prompt;
@@ -99,32 +199,45 @@ function createImageCard(imageUrl: string, prompt: string) {
   promptText.className = 'text-sm text-light-text-soft dark:text-dark-text-soft truncate mb-3';
   promptText.textContent = prompt;
   
-  const downloadButton = document.createElement('button');
-  downloadButton.textContent = 'Download';
-  downloadButton.className = 'w-full bg-blue-500 hover:bg-blue-600 text-white font-semibold py-2 px-4 rounded-lg text-sm transition-colors';
-  downloadButton.onclick = () => {
-    const a = document.createElement('a');
-    a.href = imageUrl;
-    a.download = `${prompt.slice(0, 20).replace(/\s/g, '_')}.jpeg`;
-    a.click();
+  const actionContainer = document.createElement('div');
+  actionContainer.className = 'flex items-center gap-2';
+
+  const upscaleSelect = document.createElement('select');
+  upscaleSelect.className = 'upscale-select bg-light-input dark:bg-dark-input border border-gray-300 dark:border-gray-600 rounded-lg p-2 text-sm text-light-text-strong dark:text-dark-text-strong focus:ring-2 focus:ring-blue-500';
+  const options = ['2x', '3x', '4x'];
+  options.forEach(val => {
+    const option = document.createElement('option');
+    option.value = val;
+    option.textContent = val;
+    upscaleSelect.appendChild(option);
+  });
+  
+  const actionButton = document.createElement('button');
+  actionButton.textContent = 'Upscale';
+  actionButton.className = 'flex-grow bg-blue-500 hover:bg-blue-600 text-white font-semibold py-2 px-4 rounded-lg text-sm transition-colors';
+  actionButton.onclick = () => {
+    upscaleImage(card, originalBase64, format);
   };
   
+  actionContainer.appendChild(upscaleSelect);
+  actionContainer.appendChild(actionButton);
   infoContainer.appendChild(promptText);
-  infoContainer.appendChild(downloadButton);
+  infoContainer.appendChild(actionContainer);
   card.appendChild(img);
   card.appendChild(infoContainer);
   resultsGridEl.appendChild(card);
 }
-
 
 /**
  * Calls the Gemini API to generate an image.
  * @param prompt - The text prompt.
  * @param apiKey - The API key.
  * @param aspectRatio - The desired aspect ratio.
+ * @param resolution - The desired output pixel size.
  * @param numberOfImages - The number of images to generate.
+ * @param format - The desired output MIME type.
  */
-async function generateImage(prompt: string, apiKey: string, aspectRatio: string, numberOfImages: number) {
+async function generateImage(prompt: string, apiKey: string, aspectRatio: string, resolution: number, numberOfImages: number, format: string) {
   const ai = new GoogleGenAI({ apiKey });
 
   const response = await ai.models.generateImages({
@@ -133,7 +246,7 @@ async function generateImage(prompt: string, apiKey: string, aspectRatio: string
     config: {
       numberOfImages,
       aspectRatio,
-      outputMimeType: 'image/jpeg',
+      outputMimeType: format,
     },
   });
 
@@ -144,8 +257,7 @@ async function generateImage(prompt: string, apiKey: string, aspectRatio: string
 
   images.forEach(image => {
     const base64ImageBytes = image.image.imageBytes;
-    const imageUrl = `data:image/jpeg;base64,${base64ImageBytes}`;
-    createImageCard(imageUrl, prompt);
+    createImageCard(base64ImageBytes, prompt, format);
   });
 }
 
@@ -160,61 +272,59 @@ async function generate() {
     return;
   }
 
-  const prompts = promptEl.value.trim().split('\n').filter(p => p.trim() !== '');
-  if (prompts.length === 0) {
-    showStatusError('Please enter at least one prompt.');
+  const prompt = promptEl.value.trim();
+  if (!prompt) {
+    showStatusError('Please enter a prompt.');
     return;
   }
 
   statusEl.innerText = '';
-  // resultsGridEl.innerHTML = ''; // Uncomment to clear previous results
   showLoading(true);
   setControlsDisabled(true);
 
   try {
     const aspectRatio = aspectRatioSelect.value;
+    const resolution = parseInt(resolutionSelect.value, 10);
     const numberOfImages = parseInt(numImagesSelect.value, 10);
+    const format = formatSelect.value;
     
-    for (const prompt of prompts) {
-      statusEl.innerText = `Generating for prompt: "${prompt}"...`;
-      await generateImage(prompt, apiKey, aspectRatio, numberOfImages);
-    }
+    statusEl.innerText = `Generating images...`;
     
-    statusEl.innerHTML = `<span class="text-green-400">All images generated successfully.</span>`;
-    updateHistory(prompts);
-  } catch (e) {
-    console.error('Image generation failed:', e);
-    const errorMessage = e instanceof Error ? e.message : 'An unknown error occurred.';
-    let userFriendlyMessage = `Error: ${errorMessage}`;
-    let shouldOpenDialog = false;
+    await generateImage(prompt, apiKey, aspectRatio, resolution, numberOfImages, format);
 
-    if (typeof errorMessage === 'string') {
-      if (errorMessage.includes('API_KEY_INVALID') || errorMessage.includes('API key not valid')) {
-        userFriendlyMessage = 'Your API key is invalid. Please add a valid API key.';
-        shouldOpenDialog = true;
-      }
+    if (!history.includes(prompt)) {
+      history.unshift(prompt);
+      if (history.length > 50) history.pop();
+      saveHistory();
+      renderHistory();
     }
-    showStatusError(userFriendlyMessage, true);
-    if (shouldOpenDialog) {
-      await openApiKeyDialog();
-    }
+  } catch (error) {
+    console.error(error);
+    const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred.';
+    showStatusError(`Generation failed: ${errorMessage}`, true);
   } finally {
     showLoading(false);
     setControlsDisabled(false);
+    statusEl.innerText = '';
   }
 }
 
 
-// --- History Management ---
 /**
- * Loads history from localStorage and renders it.
+ * Loads history from local storage.
  */
 function loadHistory() {
-  const storedHistory = localStorage.getItem('imageGenHistory');
+  const storedHistory = localStorage.getItem('image-gen-history');
   if (storedHistory) {
     history = JSON.parse(storedHistory);
-    renderHistory();
   }
+}
+
+/**
+ * Saves history to local storage.
+ */
+function saveHistory() {
+  localStorage.setItem('image-gen-history', JSON.stringify(history));
 }
 
 /**
@@ -222,70 +332,52 @@ function loadHistory() {
  */
 function renderHistory() {
   historyListEl.innerHTML = '';
+  if (history.length === 0) {
+    const li = document.createElement('li');
+    li.textContent = 'No history yet.';
+    li.className = 'text-sm text-light-text-soft dark:text-dark-text-soft italic';
+    historyListEl.appendChild(li);
+    return;
+  }
   history.forEach(prompt => {
     const li = document.createElement('li');
     li.textContent = prompt;
-    li.className = 'text-light-text-soft dark:text-dark-text-soft hover:bg-gray-200 dark:hover:bg-gray-700';
+    li.className = 'text-light-text-soft dark:text-dark-text-soft hover:bg-light-input dark:hover:bg-dark-input';
     li.onclick = () => {
       promptEl.value = prompt;
+      generate();
     };
-    historyListEl.prepend(li); // Show newest first
+    historyListEl.appendChild(li);
   });
 }
 
 /**
- * Updates history with new prompts and saves to localStorage.
- * @param newPrompts - An array of new prompts to add.
+ * Sets up all the event listeners for the application.
  */
-function updateHistory(newPrompts: string[]) {
-    newPrompts.forEach(p => {
-        // Avoid duplicates
-        if (!history.includes(p)) {
-            history.push(p);
-        }
-    });
-    // Keep history at a reasonable size
-    if (history.length > 50) {
-        history = history.slice(history.length - 50);
+function setupEventListeners() {
+  generateButton.addEventListener('click', generate);
+  promptEl.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      generate();
     }
-    localStorage.setItem('imageGenHistory', JSON.stringify(history));
-    renderHistory();
-}
+  });
 
-// --- Theme Management ---
-/**
- * Applies the theme based on the toggle state and localStorage.
- */
-function applyTheme() {
-  const isDarkMode = themeToggle.checked;
-  if (isDarkMode) {
-    document.documentElement.classList.add('dark');
-    document.body.classList.add('dark');
-  } else {
-    document.documentElement.classList.remove('dark');
-    document.body.classList.remove('dark');
-  }
-  localStorage.setItem('theme', isDarkMode ? 'dark' : 'light');
-}
-
-/**
- * Initializes the theme based on localStorage or system preference.
- */
-function initializeTheme() {
+  const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
   const savedTheme = localStorage.getItem('theme');
-  const systemPrefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-  if (savedTheme === 'dark' || (!savedTheme && systemPrefersDark)) {
+
+  if (savedTheme === 'dark' || (!savedTheme && prefersDark)) {
+    document.body.classList.add('dark');
     themeToggle.checked = true;
   }
-  applyTheme();
+
+  themeToggle.addEventListener('change', () => {
+    document.body.classList.toggle('dark');
+    localStorage.setItem('theme', document.body.classList.contains('dark') ? 'dark' : 'light');
+  });
 }
 
-// --- Event Listeners ---
-generateButton.addEventListener('click', generate);
-themeToggle.addEventListener('change', applyTheme);
-
 // --- Initialization ---
-document.addEventListener('DOMContentLoaded', () => {
-  initializeTheme();
-  loadHistory();
-});
+loadHistory();
+renderHistory();
+setupEventListeners();
