@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Image Generator with Imagen</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="index.css" />
+    <script type="importmap">
+      {
+        "imports": {
+          "@google/genai": "https://esm.sh/@google/genai@^1.4.0"
+        }
+      }
+    </script>
+  </head>
+  <body class="font-['Inter'] text-gray-300 antialiased">
+    <div id="app-container" class="flex h-screen bg-light-bg dark:bg-dark-bg">
+      <!-- Sidebar for History -->
+      <aside
+        id="history-sidebar"
+        class="w-64 bg-light-sidebar dark:bg-dark-sidebar p-4 flex-shrink-0 flex flex-col"
+      >
+        <h2 class="text-lg font-bold mb-4 text-light-text-strong dark:text-dark-text-strong">
+          History
+        </h2>
+        <div class="flex-grow overflow-y-auto">
+          <ul id="history-list" class="space-y-2">
+            <!-- History items will be injected here -->
+          </ul>
+        </div>
+      </aside>
+
+      <!-- Main Content -->
+      <main class="flex-1 flex flex-col p-4 md:p-8 overflow-y-auto">
+        <header class="flex justify-between items-center mb-6">
+          <h1 class="text-3xl font-bold text-light-text-strong dark:text-dark-text-strong tracking-tight">
+            Image Generator
+          </h1>
+          <div class="flex items-center space-x-2">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-gray-400"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"></path></svg>
+            <label for="theme-toggle" class="relative inline-flex items-center cursor-pointer">
+                <input type="checkbox" id="theme-toggle" class="sr-only peer" />
+                <div class="w-11 h-6 bg-gray-300 dark:bg-gray-700 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+            </label>
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-gray-400"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>
+          </div>
+        </header>
+
+        <!-- Input Card -->
+        <div class="bg-light-card dark:bg-dark-card p-6 rounded-xl shadow-lg mb-8">
+          <div class="space-y-4">
+            <textarea
+              id="prompt-input"
+              rows="4"
+              class="w-full bg-light-input dark:bg-dark-input border border-gray-300 dark:border-gray-600 rounded-lg p-4 text-light-text-strong dark:text-dark-text-strong placeholder-gray-500 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-shadow duration-200 resize-none"
+              placeholder="Enter one or more prompts, separated by new lines.&#10;e.g., A cinematic shot of a futuristic city at night&#10;A cute robot holding a red skateboard"
+              aria-label="Image generation prompts"
+            ></textarea>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label for="aspect-ratio-select" class="block text-sm font-medium text-light-text-soft dark:text-dark-text-soft mb-1">Aspect Ratio</label>
+                <select id="aspect-ratio-select" class="w-full bg-light-input dark:bg-dark-input border border-gray-300 dark:border-gray-600 rounded-lg p-2 text-light-text-strong dark:text-dark-text-strong focus:ring-2 focus:ring-blue-500">
+                  <option value="1:1" selected>1:1 (Square)</option>
+                  <option value="16:9">16:9 (Widescreen)</option>
+                  <option value="9:16">9:16 (Vertical)</option>
+                  <option value="4:3">4:3 (Standard)</option>
+                  <option value="3:4">3:4 (Portrait)</option>
+                </select>
+              </div>
+              <div>
+                <label for="num-images-select" class="block text-sm font-medium text-light-text-soft dark:text-dark-text-soft mb-1">Number of Images (per prompt)</label>
+                <select id="num-images-select" class="w-full bg-light-input dark:bg-dark-input border border-gray-300 dark:border-gray-600 rounded-lg p-2 text-light-text-strong dark:text-dark-text-strong focus:ring-2 focus:ring-blue-500">
+                  <option value="1" selected>1</option>
+                  <option value="2">2</option>
+                  <option value="3">3</option>
+                  <option value="4">4</option>
+                </select>
+              </div>
+            </div>
+          </div>
+          <button
+            id="generate-button"
+            class="w-full mt-4 bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded-lg transition-all duration-300 transform hover:scale-105 focus:outline-none focus:ring-4 focus:ring-blue-400 focus:ring-opacity-50 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
+          >
+            Generate
+          </button>
+        </div>
+
+        <!-- Results Section -->
+        <div>
+          <h2 class="text-2xl font-bold mb-4 text-light-text-strong dark:text-dark-text-strong">Results</h2>
+          <div id="status" class="text-center min-h-[24px] mb-4"></div>
+          <div id="results-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+            <!-- Generated images will be injected here -->
+          </div>
+        </div>
+      </main>
+    </div>
+
+    <!-- Loading Overlay -->
+    <div id="loading-overlay" class="fixed inset-0 bg-black bg-opacity-50 items-center justify-center hidden z-50">
+      <div class="loader"></div>
+      <p class="text-white text-lg mt-4">Generating images, please wait...</p>
+    </div>
+
+    <script type="module" src="index.tsx"></script>
+  </body>
+</html>
