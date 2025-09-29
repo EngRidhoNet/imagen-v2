@@ -83,6 +83,26 @@ function showLoading(show: boolean) {
 }
 
 /**
+ * Gets the dimensions of a base64 encoded image.
+ * @param base64 The base64 string of the image.
+ * @param mimeType The MIME type of the image.
+ * @returns A promise that resolves with the image's width and height.
+ */
+function getImageDimensions(base64: string, mimeType: string): Promise<{width: number, height: number}> {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.onload = () => {
+      resolve({ width: img.naturalWidth, height: img.naturalHeight });
+    };
+    img.onerror = (err) => {
+      reject(new Error('Could not load image to get dimensions.'));
+    };
+    img.src = `data:${mimeType};base64,${base64}`;
+  });
+}
+
+
+/**
  * Upscales a generated image using a different model.
  * @param card The image card element containing the image and button.
  * @param originalBase64 The base64 string of the original image.
@@ -91,7 +111,7 @@ function showLoading(show: boolean) {
 async function upscaleImage(card: HTMLDivElement, originalBase64: string, mimeType: string) {
   const upscaleButton = card.querySelector('button') as HTMLButtonElement;
   const upscaleSelect = card.querySelector('.upscale-select') as HTMLSelectElement;
-  const upscaleFactor = upscaleSelect.value;
+  const upscaleFactor = parseInt(upscaleSelect.value.replace('x', ''), 10);
   const img = card.querySelector('img') as HTMLImageElement;
 
   // 1. Show loading state
@@ -111,6 +131,22 @@ async function upscaleImage(card: HTMLDivElement, originalBase64: string, mimeTy
   }
 
   try {
+    // 2. Get original dimensions and calculate target
+    const { width, height } = await getImageDimensions(originalBase64, mimeType);
+    const targetWidth = width * upscaleFactor;
+    const targetHeight = height * upscaleFactor;
+
+    // 3. Create a highly technical and strict prompt
+    const upscalePrompt = `
+      TASK DEFINITION: High-Resolution Image Upscaling
+      MODEL: You are an image processing model. Your task is to perform a high-fidelity upscale of the provided input image.
+      INPUT RESOLUTION: ${width}x${height} pixels.
+      REQUIRED OUTPUT RESOLUTION: EXACTLY ${targetWidth}x${targetHeight} pixels.
+      CRITICAL INSTRUCTION: The output image's dimensions MUST match the required output resolution precisely. Do not alter the aspect ratio.
+      PROCESS: Analyze the input image's content, structure, and details. Regenerate the image at the target resolution, intelligently adding photorealistic details, enhancing textures, and sharpening lines. Avoid introducing artifacts. The final output must be a clean, high-resolution version of the original.
+      FAILURE CONDITION: Any output that does not match the exact target resolution of ${targetWidth}x${targetHeight} is considered a failed execution of this task.
+    `;
+
     const ai = new GoogleGenAI({ apiKey });
     const response = await ai.models.generateContent({
       model: 'gemini-2.5-flash-image-preview',
@@ -123,7 +159,7 @@ async function upscaleImage(card: HTMLDivElement, originalBase64: string, mimeTy
             },
           },
           {
-            text: `Upscale this image by ${upscaleFactor}, enhancing details and resolution to the highest quality without altering the content or style.`,
+            text: upscalePrompt,
           },
         ],
       },
@@ -147,22 +183,22 @@ async function upscaleImage(card: HTMLDivElement, originalBase64: string, mimeTy
       throw new Error("Upscaling did not return an image.");
     }
 
-    // 2. Update card with upscaled image
+    // 4. Update card with upscaled image
     const newImageUrl = `data:${upscaledMimeType};base64,${upscaledBase64}`;
     img.src = newImageUrl;
     img.style.opacity = '1';
 
-    // 3. Replace "Upscale" button with "Download"
+    // 5. Replace "Upscale" controls with "Download"
     upscaleSelect.remove();
     upscaleButton.textContent = 'Download';
     upscaleButton.disabled = false;
-    upscaleButton.className = 'w-full bg-blue-500 hover:bg-blue-600 text-white font-semibold py-2 px-4 rounded-lg text-sm transition-colors'; // Make it full width
+    upscaleButton.className = 'w-full bg-blue-500 hover:bg-blue-600 text-white font-semibold py-2 px-4 rounded-lg text-sm transition-colors';
     upscaleButton.onclick = () => {
       const a = document.createElement('a');
       a.href = newImageUrl;
       const extension = upscaledMimeType === 'image/png' ? 'png' : 'jpeg';
       const prompt = img.alt;
-      a.download = `${prompt.slice(0, 20).replace(/\s/g, '_')}_upscaled_${upscaleFactor}.${extension}`;
+      a.download = `${prompt.slice(0, 20).replace(/\s/g, '_')}_upscaled_${upscaleFactor}x.${extension}`;
       a.click();
     };
 
@@ -175,6 +211,7 @@ async function upscaleImage(card: HTMLDivElement, originalBase64: string, mimeTy
     upscaleButton.onclick = () => upscaleImage(card, originalBase64, mimeType);
   }
 }
+
 
 /**
  * Creates and appends an image card to the results grid.
