@@ -1,12 +1,15 @@
+
 <!DOCTYPE html>
-<html>
+<html lang="en">
   <head>
-    <title>Image Generator with Imagen</title>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Gemini Image Studio</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
-      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
       rel="stylesheet"
     />
     <link rel="stylesheet" href="index.css" />
@@ -18,108 +21,154 @@
       }
     </script>
   </head>
-  <body class="font-['Inter'] text-gray-300 antialiased">
-    <div id="app-container" class="flex h-screen bg-light-bg dark:bg-dark-bg">
+  <body class="font-['Inter'] text-gray-900 dark:text-gray-100 antialiased overflow-hidden">
+    <div id="app-container" class="flex h-screen bg-light-bg dark:bg-dark-bg transition-colors duration-300">
       <!-- Sidebar for History -->
       <aside
         id="history-sidebar"
-        class="w-64 bg-light-sidebar dark:bg-dark-sidebar p-4 flex-shrink-0 flex flex-col"
+        class="w-72 bg-light-sidebar dark:bg-dark-sidebar p-6 flex-shrink-0 flex flex-col border-r border-gray-200 dark:border-gray-800 z-10"
       >
-        <h2 class="text-lg font-bold mb-4 text-light-text-strong dark:text-dark-text-strong">
-          History
-        </h2>
-        <div class="flex-grow overflow-y-auto">
-          <ul id="history-list" class="space-y-2">
-            <!-- History items will be injected here -->
+        <div class="flex items-center justify-between mb-8">
+          <h2 class="text-xl font-bold text-light-text-strong dark:text-dark-text-strong">
+            History
+          </h2>
+          <button id="reselect-key-button" class="text-xs bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 px-3 py-1.5 rounded-full transition-all border border-gray-200 dark:border-gray-700 font-medium">
+            Settings
+          </button>
+        </div>
+        <div class="flex-grow overflow-y-auto custom-scrollbar pr-1">
+          <ul id="history-list" class="space-y-4">
+            <!-- History items injected here -->
           </ul>
         </div>
       </aside>
 
       <!-- Main Content -->
-      <main class="flex-1 flex flex-col p-4 md:p-8 overflow-y-auto">
-        <header class="flex justify-between items-center mb-6">
-          <h1 class="text-3xl font-bold text-light-text-strong dark:text-dark-text-strong tracking-tight">
-            Image Generator
-          </h1>
-          <div class="flex items-center space-x-2">
-            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-gray-400"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"></path></svg>
+      <main class="flex-1 flex flex-col p-4 md:p-10 overflow-y-auto">
+        <header class="flex justify-between items-center mb-10 max-w-5xl mx-auto w-full">
+          <div>
+            <h1 class="text-3xl font-extrabold text-light-text-strong dark:text-dark-text-strong tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-blue-600 to-indigo-500">
+              Gemini Studio
+            </h1>
+            <p class="text-light-text-soft dark:text-dark-text-soft mt-1 text-sm">Professional Image Generation</p>
+          </div>
+          <div class="flex items-center space-x-4 bg-white dark:bg-dark-card p-2 rounded-full shadow-sm border border-gray-200 dark:border-gray-800">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-yellow-500 ml-1"><circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="m4.93 4.93 1.41 1.41"/><path d="m17.66 17.66 1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="m6.34 17.66-1.41 1.41"/><path d="m19.07 4.93-1.41 1.41"/></svg>
             <label for="theme-toggle" class="relative inline-flex items-center cursor-pointer">
                 <input type="checkbox" id="theme-toggle" class="sr-only peer" />
-                <div class="w-11 h-6 bg-gray-300 dark:bg-gray-700 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                <div class="w-9 h-5 bg-gray-200 dark:bg-gray-700 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-blue-600"></div>
             </label>
-            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-gray-400"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-blue-500 mr-1"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"></path></svg>
           </div>
         </header>
 
-        <!-- Input Card -->
-        <div class="bg-light-card dark:bg-dark-card p-6 rounded-xl shadow-lg mb-8">
-          <div class="space-y-4">
-            <textarea
-              id="prompt-input"
-              rows="4"
-              class="w-full bg-light-input dark:bg-dark-input border border-gray-300 dark:border-gray-600 rounded-lg p-4 text-light-text-strong dark:text-dark-text-strong placeholder-gray-500 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-shadow duration-200 resize-none"
-              placeholder="A cinematic shot of a futuristic city at night with flying cars and neon lights."
-              aria-label="Image generation prompt"
-            ></textarea>
-            <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
-              <div>
-                <label for="aspect-ratio-select" class="block text-sm font-medium text-light-text-soft dark:text-dark-text-soft mb-1">Aspect Ratio</label>
-                <select id="aspect-ratio-select" class="w-full bg-light-input dark:bg-dark-input border border-gray-300 dark:border-gray-600 rounded-lg p-2 text-light-text-strong dark:text-dark-text-strong focus:ring-2 focus:ring-blue-500">
-                  <option value="1:1" selected>1:1 (Square)</option>
-                  <option value="16:9">16:9 (Widescreen)</option>
-                  <option value="9:16">9:16 (Vertical)</option>
-                  <option value="4:3">4:3 (Standard)</option>
-                  <option value="3:4">3:4 (Portrait)</option>
-                </select>
+        <!-- Input Section -->
+        <div class="max-w-5xl mx-auto w-full space-y-8">
+          <div class="bg-light-card dark:bg-dark-card p-6 md:p-8 rounded-3xl shadow-xl border border-gray-100 dark:border-gray-800">
+            <div id="status" class="w-full"></div>
+            
+            <div class="space-y-6">
+              <div class="relative">
+                <textarea
+                  id="prompt-input"
+                  rows="3"
+                  class="w-full bg-light-input dark:bg-dark-input border border-gray-200 dark:border-gray-700 rounded-2xl p-6 text-lg text-light-text-strong dark:text-dark-text-strong placeholder-gray-400 focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 transition-all duration-300 resize-none shadow-sm"
+                  placeholder="Describe your vision with detail..."
+                  aria-label="Image generation prompt"
+                ></textarea>
               </div>
-              <div>
-                <label for="quality-select" class="block text-sm font-medium text-light-text-soft dark:text-dark-text-soft mb-1">Quality</label>
-                <select id="quality-select" class="w-full bg-light-input dark:bg-dark-input border border-gray-300 dark:border-gray-600 rounded-lg p-2 text-light-text-strong dark:text-dark-text-strong focus:ring-2 focus:ring-blue-500">
-                  <option value="standard" selected>Standard</option>
-                  <option value="high">High Detail</option>
-                </select>
-              </div>
-               <div>
-                <label for="format-select" class="block text-sm font-medium text-light-text-soft dark:text-dark-text-soft mb-1">Format</label>
-                <select id="format-select" class="w-full bg-light-input dark:bg-dark-input border border-gray-300 dark:border-gray-600 rounded-lg p-2 text-light-text-strong dark:text-dark-text-strong focus:ring-2 focus:ring-blue-500">
-                  <option value="image/jpeg" selected>JPEG</option>
-                  <option value="image/png">PNG</option>
-                </select>
-              </div>
-              <div>
-                <label for="num-images-select" class="block text-sm font-medium text-light-text-soft dark:text-dark-text-soft mb-1">Number of Images</label>
-                <select id="num-images-select" class="w-full bg-light-input dark:bg-dark-input border border-gray-300 dark:border-gray-600 rounded-lg p-2 text-light-text-strong dark:text-dark-text-strong focus:ring-2 focus:ring-blue-500">
-                  <option value="1" selected>1</option>
-                  <option value="2">2</option>
-                  <option value="3">3</option>
-                  <option value="4">4</option>
-                </select>
+              
+              <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div class="bg-gray-50 dark:bg-gray-900/50 p-4 rounded-2xl border border-gray-100 dark:border-gray-800">
+                  <label for="quality-select" class="block text-xs font-bold uppercase tracking-wider text-light-text-soft dark:text-dark-text-soft mb-2">Engine</label>
+                  <select id="quality-select" class="w-full bg-transparent border-none text-light-text-strong dark:text-dark-text-strong font-medium focus:ring-0 outline-none cursor-pointer">
+                    <option value="flash" selected>⚡ Gemini 2.5 (Flash)</option>
+                    <option value="pro">💎 Gemini 3 (Pro)</option>
+                  </select>
+                </div>
+                <div class="bg-gray-50 dark:bg-gray-900/50 p-4 rounded-2xl border border-gray-100 dark:border-gray-800">
+                  <label for="aspect-ratio-select" class="block text-xs font-bold uppercase tracking-wider text-light-text-soft dark:text-dark-text-soft mb-2">Shape</label>
+                  <select id="aspect-ratio-select" class="w-full bg-transparent border-none text-light-text-strong dark:text-dark-text-strong font-medium focus:ring-0 outline-none cursor-pointer">
+                    <option value="1:1" selected>Square (1:1)</option>
+                    <option value="16:9">Wide (16:9)</option>
+                    <option value="9:16">Tall (9:16)</option>
+                    <option value="4:3">Classic (4:3)</option>
+                  </select>
+                </div>
+                <div class="bg-gray-50 dark:bg-gray-900/50 p-4 rounded-2xl border border-gray-100 dark:border-gray-800">
+                  <label for="size-select" class="block text-xs font-bold uppercase tracking-wider text-light-text-soft dark:text-dark-text-soft mb-2">Size</label>
+                  <select id="size-select" class="w-full bg-transparent border-none text-light-text-strong dark:text-dark-text-strong font-medium focus:ring-0 outline-none cursor-pointer disabled:opacity-30">
+                    <option value="1K" selected>1024px (1K)</option>
+                    <option value="2K">2048px (2K)</option>
+                    <option value="4K">4096px (4K)</option>
+                  </select>
+                </div>
               </div>
             </div>
+            
+            <button
+              id="generate-button"
+              class="w-full mt-8 bg-blue-600 hover:bg-blue-700 text-white font-bold py-5 px-6 rounded-2xl transition-all duration-300 transform active:scale-[0.98] shadow-xl shadow-blue-500/25 flex items-center justify-center space-x-3 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="animate-pulse"><path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"/></svg>
+              <span class="text-lg">Create Image</span>
+            </button>
           </div>
-          <button
-            id="generate-button"
-            class="w-full mt-4 bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded-lg transition-all duration-300 transform hover:scale-105 focus:outline-none focus:ring-4 focus:ring-blue-400 focus:ring-opacity-50 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
-          >
-            Generate
-          </button>
-        </div>
 
-        <!-- Results Section -->
-        <div>
-          <h2 class="text-2xl font-bold mb-4 text-light-text-strong dark:text-dark-text-strong">Results</h2>
-          <div id="status" class="text-center min-h-[24px] mb-4"></div>
-          <div id="results-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-            <!-- Generated images will be injected here -->
+          <!-- Results Section -->
+          <div class="pb-12">
+            <h2 class="text-2xl font-bold text-light-text-strong dark:text-dark-text-strong mb-8">Generated Gallery</h2>
+            <div id="results-grid" class="grid grid-cols-1 sm:grid-cols-2 gap-8">
+              <!-- Empty State -->
+              <div id="empty-state" class="col-span-full py-24 border-2 border-dashed border-gray-200 dark:border-gray-800 rounded-3xl flex flex-col items-center justify-center text-light-text-soft dark:text-dark-text-soft bg-white/50 dark:bg-white/5">
+                <div class="bg-blue-50 dark:bg-blue-900/10 p-6 rounded-full mb-6">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="text-blue-500 opacity-50"><rect width="18" height="18" x="3" y="3" rx="2" ry="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/></svg>
+                </div>
+                <p class="text-lg font-medium">Ready to visualize your prompt</p>
+                <p class="text-sm opacity-60 mt-2">Enter a description above to begin</p>
+              </div>
+            </div>
           </div>
         </div>
       </main>
     </div>
 
+    <!-- API Key Selection Dialog (Now Optional/On-Demand) -->
+    <div id="key-setup-overlay" class="fixed inset-0 bg-black/70 backdrop-blur-xl items-center justify-center hidden z-[100] flex p-4">
+      <div class="bg-white dark:bg-dark-card p-8 rounded-[2rem] max-w-md w-full shadow-2xl border border-gray-100 dark:border-gray-800 transform animate-in zoom-in-95 duration-200">
+        <div class="flex justify-end -mt-4 -mr-4">
+          <button id="close-key-overlay" class="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-full transition-colors">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-gray-400"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+          </button>
+        </div>
+        <div class="text-center mb-8">
+          <div class="bg-blue-100 dark:bg-blue-900/30 w-20 h-20 rounded-3xl rotate-12 flex items-center justify-center mx-auto mb-6">
+            <svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="blue" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3L15.5 7.5z"/></svg>
+          </div>
+          <h2 class="text-2xl font-bold dark:text-white mb-2">API Configuration</h2>
+          <p class="text-light-text-soft dark:text-dark-text-soft px-4">If the standard key isn't working, you can unlock full access by selecting a project key with billing enabled.</p>
+        </div>
+        
+        <div class="space-y-4">
+          <button id="select-key-button" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-5 px-6 rounded-2xl transition-all shadow-xl shadow-blue-500/25 active:scale-[0.98]">
+            Select Project Key
+          </button>
+          <a href="https://ai.google.dev/gemini-api/docs/billing" target="_blank" class="block text-center text-sm text-blue-500 hover:text-blue-600 font-bold transition-colors">
+            Learn about API billing
+          </a>
+        </div>
+      </div>
+    </div>
+
     <!-- Loading Overlay -->
-    <div id="loading-overlay" class="fixed inset-0 bg-black bg-opacity-50 items-center justify-center hidden z-50">
-      <div class="loader"></div>
-      <p class="text-white text-lg mt-4">Generating images, please wait...</p>
+    <div id="loading-overlay" class="fixed inset-0 bg-white/80 dark:bg-black/80 backdrop-blur-md items-center justify-center hidden z-[60] flex flex-col">
+      <div class="loader-container mb-8">
+        <div class="loader"></div>
+      </div>
+      <div class="text-center max-w-xs">
+        <p class="text-light-text-strong dark:text-white text-2xl font-bold tracking-tight">Creating Art...</p>
+        <p class="text-light-text-soft dark:text-blue-200/50 text-sm mt-3 leading-relaxed">Gemini is translating your prompt into pixels. This usually takes 5-10 seconds.</p>
+      </div>
     </div>
 
     <script type="module" src="index.tsx"></script>
